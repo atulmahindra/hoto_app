@@ -11,6 +11,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.3.1",
     "@mui/material": "^9.3.1",
     "@mui/x-date-pickers": "^9.12.0",
     "axios": "^1.20.0",
@@ -18,7 +19,8 @@
     "next": "16.3.3",
     "react": "19.2.8",
     "react-advance-datepicker": "^0.0.54",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
