@@ -38,3 +38,14 @@ div.absolute.z-10.opacity-1 {
   box-shadow: 0 18px 40px rgb(15 23 42 / 0.16);
   color: #334155;
 }
+
+/* Override react-advance-datepicker shortcut button styles to match table theme */
+.whitespace-nowrap.text-blue-600 {
+  color: #334155 !important;
+  font-weight: 500;
+}
+
+.whitespace-nowrap.text-blue-600:hover {
+  color: #1e3a8a !important;
+  background-color: #dbeafe !important;
+}
