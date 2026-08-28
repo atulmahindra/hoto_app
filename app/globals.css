@@ -49,3 +49,10 @@ div.absolute.z-10.opacity-1 {
   color: #1e3a8a !important;
   background-color: #dbeafe !important;
 }
+
+/* Active date-range shortcut highlight */
+.hoto-shortcut-active {
+  background-color: #dbeafe !important;
+  color: #1e3a8a !important;
+  font-weight: 700 !important;
+}

@@ -31,6 +31,12 @@ interface CityItem {
   city_name: string;
 }
 
+interface CityYardMapping {
+  yard_id: string | number;
+  city_id: string | number;
+  [key: string]: unknown;
+}
+
 type SortDirection = "asc" | "desc";
 
 const parseAuditDate = (value: string) => {
@@ -62,8 +68,54 @@ export default function HotoAuditTable() {
   const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [locationFilter, setLocationFilter] = useState("All Locations");
+  const [cityYardMapping, setCityYardMapping] = useState<CityYardMapping[]>([]);
+  const [yardFilter, setYardFilter] = useState("All Yards");
+  const [activeShortcut, setActiveShortcut] = useState("");
 
-  // Fetch city list
+  // Fetch master data (city-yard mapping)
+  useEffect(() => {
+    const fetchMasterData = async () => {
+      try {
+        const response = await axios.post(
+          "https://alytehotoapi.mllqa.com/api/v1/master/data",
+          { entity: "1" }
+        );
+        console.log("set_data", response.data);
+        const mapping = response.data?.data?.city_yard_mapping;
+        setCityYardMapping(Array.isArray(mapping) ? mapping : []);
+      } catch (error) {
+        console.error("Failed to fetch master data:", error);
+      }
+    };
+
+    fetchMasterData();
+  }, []);
+
+  // Highlight the active shortcut button by matching its text
+  useEffect(() => {
+    const applyHighlight = () => {
+      const buttons = document.querySelectorAll<HTMLElement>(
+        ".hoto-datepicker li"
+      );
+      buttons.forEach((btn) => {
+        if (btn.textContent?.trim() === activeShortcut && activeShortcut) {
+          btn.classList.add("hoto-shortcut-active");
+        } else {
+          btn.classList.remove("hoto-shortcut-active");
+        }
+      });
+    };
+
+    // Apply on next tick and observe DOM for the popover opening
+    applyHighlight();
+    const observer = new MutationObserver(applyHighlight);
+    const container = document.querySelector(".hoto-datepicker");
+    if (container) {
+      observer.observe(container, { childList: true, subtree: true });
+    }
+    return () => observer.disconnect();
+  }, [activeShortcut]);
+
   useEffect(() => {
     const fetchCityList = async () => {
       try {
@@ -104,12 +156,18 @@ export default function HotoAuditTable() {
     return selectedCity?.id ?? "";
   }, [cityList, locationFilter]);
 
+  const selectedYardId = useMemo(() => {
+    if (yardFilter === "All Yards") return "";
+    return yardFilter;
+  }, [yardFilter]);
+
   // Fetch audit records
   useEffect(() => {
     const fetchVehicleAuditReport = async () => {
       try {
         const payload = {
           city_id: selectedCityId,
+          yard_id: selectedYardId,
           from_date: dateRange.startDate,
           to_date: dateRange.endDate,
         };
@@ -133,7 +191,7 @@ export default function HotoAuditTable() {
     };
 
     fetchVehicleAuditReport();
-  }, [selectedCityId, dateRange.startDate, dateRange.endDate]);
+  }, [selectedCityId, selectedYardId, dateRange.startDate, dateRange.endDate]);
 
   const tableData = useMemo(() => auditRecords, [auditRecords]);
   const columns = useMemo(() => Object.keys(tableData[0] || {}), [tableData]);
@@ -241,12 +299,81 @@ export default function HotoAuditTable() {
   const handleResetFilters = () => {
     setSearchTerm("");
     setLocationFilter("All Locations");
+    setYardFilter("All Yards");
     setDateValue({
       startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
       endDate: new Date(),
     });
     setCurrentPage(0);
   };
+
+  // Custom date-range shortcuts
+  const datePickerConfigs = useMemo(() => {
+    const today = new Date();
+    const buildRange = (days: number) => {
+      const start = new Date();
+      start.setDate(start.getDate() - days);
+      return { start, end: today };
+    };
+
+    const trackClick = (text: string) => () =>
+      setTimeout(() => setActiveShortcut(text), 0);
+
+    // Last month (previous calendar month)
+    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+
+    return {
+      shortcuts: {
+        // Extra custom range shortcuts
+        todayRange: {
+          text: "Today",
+          period: { start: today, end: today },
+          onClick: trackClick("Today"),
+        },
+        last7Days: {
+          text: "7 Days",
+          period: buildRange(7),
+          onClick: trackClick("7 Days"),
+        },
+        last15Days: {
+          text: "15 Days",
+          period: buildRange(15),
+          onClick: trackClick("15 Days"),
+        },
+        lastMonth: {
+          text: "Last Month",
+          period: { start: lastMonthStart, end: lastMonthEnd },
+          onClick: trackClick("Last Month"),
+        },
+        oneMonth: {
+          text: "1 Month",
+          period: buildRange(30),
+          onClick: trackClick("1 Month"),
+        },
+        last3Months: {
+          text: "3 Months",
+          period: buildRange(90),
+          onClick: trackClick("3 Months"),
+        },
+        last6Months: {
+          text: "6 Months",
+          period: buildRange(180),
+          onClick: trackClick("6 Months"),
+        },
+        last9Months: {
+          text: "9 Months",
+          period: buildRange(270),
+          onClick: trackClick("9 Months"),
+        },
+        last1Year: {
+          text: "1 Year",
+          period: buildRange(365),
+          onClick: trackClick("1 Year"),
+        },
+      },
+    };
+  }, []);
 
   return (
     <Box sx={{ display: "flex", justifyContent: "center" }}>
@@ -285,7 +412,7 @@ export default function HotoAuditTable() {
               }}
             >
               {/* Date Range Picker */}
-              <Box sx={{ minWidth: 320, height: 40, display: "flex", alignItems: "center" }}>
+              <Box className="hoto-datepicker" sx={{ minWidth: 320, height: 40, display: "flex", alignItems: "center" }}>
                 <Datepicker
                   value={dateValue}
                   onChange={(nextValue) => {
@@ -299,6 +426,7 @@ export default function HotoAuditTable() {
                   useRange
                   showShortcuts
                   showFooter
+                  configs={datePickerConfigs}
                   primaryColor="blue"
                   displayFormat="YYYY-MM-DD"
                   separator=" ~ "
@@ -325,6 +453,45 @@ export default function HotoAuditTable() {
                   {locationOptions.map((location) => (
                     <MenuItem key={location} value={location}>
                       {location}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Yard Filter */}
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel id="yard-filter-label">Yard</InputLabel>
+                <Select
+                  labelId="yard-filter-label"
+                  id="yard-filter"
+                  value={yardFilter}
+                  label="Yard"
+                  onChange={(e) => {
+                    const selectedValue = e.target.value;
+                    setYardFilter(selectedValue);
+
+                    if (selectedValue !== "All Yards") {
+                      const selectedYard = cityYardMapping.find(
+                        (item) => String(item.yard_id) === selectedValue
+                      );
+                      if (selectedYard) {
+                        console.log("selected yard data", {
+                          yard_id: selectedYard.yard_id,
+                          city_id: selectedYard.city_id,
+                        });
+                      }
+                    }
+
+                    setCurrentPage(0);
+                  }}
+                >
+                  <MenuItem value="All Yards">All Yards</MenuItem>
+                  {cityYardMapping.map((item, index) => (
+                    <MenuItem
+                      key={`${item.yard_id}-${item.city_id}-${index}`}
+                      value={String(item.yard_id)}
+                    >
+                      {item.yard_id}
                     </MenuItem>
                   ))}
                 </Select>
