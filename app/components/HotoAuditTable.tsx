@@ -433,7 +433,7 @@ export default function HotoAuditTable() {
                   placeholder="Select Start Date ~ Select End Date"
                   startFrom={new Date()}
                   popoverDirection="down"
-                  inputClassName="h-[40px] w-full rounded border border-[rgba(0,0,0,0.23)] px-[14px] text-[1rem] text-[#334155] outline-none hover:border-[rgba(0,0,0,0.87)] focus:border-[#1976d2] focus:border-2 focus:px-[13px]"
+                  inputClassName="!h-[40px] w-full rounded border border-[rgba(0,0,0,0.23)] px-[14px] text-[0.875rem] text-[#334155] outline-none hover:border-[rgba(0,0,0,0.87)] focus:border-[#1976d2] focus:border-2 focus:px-[13px]"
                 />
               </Box>
 
@@ -459,7 +459,7 @@ export default function HotoAuditTable() {
               </FormControl>
 
               {/* Yard Filter */}
-              <FormControl size="small" sx={{ minWidth: 180 }}>
+              {/* <FormControl size="small" sx={{ minWidth: 180 }}>
                 <InputLabel id="yard-filter-label">Yard</InputLabel>
                 <Select
                   labelId="yard-filter-label"
@@ -495,7 +495,7 @@ export default function HotoAuditTable() {
                     </MenuItem>
                   ))}
                 </Select>
-              </FormControl>
+              </FormControl> */}
             </Stack>
 
             <Stack

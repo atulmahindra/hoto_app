@@ -56,3 +56,18 @@ div.absolute.z-10.opacity-1 {
   color: #1e3a8a !important;
   font-weight: 700 !important;
 }
+
+/* Force react-advance-datepicker input to a compact height at all breakpoints */
+.hoto-datepicker input,
+.hoto-datepicker .lg\:h-10 {
+  height: 30px !important;
+  min-height: 30px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  font-size: 0.875rem !important;
+}
+
+/* Override react-advance-datepicker calendar panel min-height (285px -> 240px) */
+.hoto-datepicker .min-h-\[285px\] {
+  min-height: 240px !important;
+}
