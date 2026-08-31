@@ -9,7 +9,14 @@ import React, {
 } from "react";
 
 interface AuthUser {
-  username: string;
+  mobile?: string;
+  username?: string;
+  token?: string;
+  user_details?: {
+    name?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
 }
 
 interface AuthContextType {
@@ -17,6 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => boolean;
+  loginWithData: (data: AuthUser) => void;
   logout: () => void;
 }
 
@@ -52,6 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   }, []);
 
+  // Store authenticated user data (e.g. after OTP verification)
+  const loginWithData = useCallback((data: AuthUser) => {
+    setUser(data);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -64,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        loginWithData,
         logout,
       }}
     >

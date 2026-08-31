@@ -164,7 +164,7 @@ export default function DashboardLayout({
             }}
           >
             <Typography variant="body2" sx={{ color: "#64748b" }}>
-              {user?.username}
+              {user?.user_details?.name ?? user?.username ?? user?.mobile}
             </Typography>
             <Button
               startIcon={<LogoutIcon />}
