@@ -1,28 +1,29 @@
 "use client";
 
-import Link from "next/link";
-import HotoAuditTable from "./components/HotoAuditTable";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Box, CircularProgress } from "@mui/material";
+import { useAuth } from "./context/AuthContext";
 
 export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) return;
+    router.replace(isAuthenticated ? "/dashboard" : "/login");
+  }, [isLoading, isAuthenticated, router]);
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-10">
-      <nav className="mx-auto mb-4 flex max-w-[1360px] gap-4">
-        <Link
-          href="/"
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white"
-        >
-          HOTO Audit
-        </Link>
-        <Link
-          href="/hoto-upload"
-          className="rounded border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
-        >
-          Manual Upload
-        </Link>
-      </nav>
-      <div className="appdiv">
-        <HotoAuditTable />
-      </div>
-    </main>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <CircularProgress />
+    </Box>
   );
 }

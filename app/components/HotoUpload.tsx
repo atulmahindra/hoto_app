@@ -434,9 +434,9 @@ export default function HotoUpload() {
           }}
         >
           <Stack direction="row" sx={{ alignItems: "center", gap: 2 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a" }}>
+            {/* <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a" }}>
               Manual Credit/Debit Upload
-            </Typography>
+            </Typography> */}
             {getStatusChip()}
           </Stack>
           <Button
@@ -593,8 +593,8 @@ export default function HotoUpload() {
                         key={col}
                         sx={{
                           fontWeight: 700,
-                          backgroundColor: "#fee2e2",
-                          color: "#991b1b",
+                          backgroundColor: "#e4e4e7",
+                          color: "#71717a",
                           whiteSpace: "nowrap",
                         }}
                       >
@@ -656,8 +656,8 @@ export default function HotoUpload() {
                         key={col}
                         sx={{
                           fontWeight: 700,
-                          backgroundColor: "#dcfce7",
-                          color: "#166534",
+                          backgroundColor: "#e4e4e7",
+                          color: "#71717a",
                           whiteSpace: "nowrap",
                         }}
                       >

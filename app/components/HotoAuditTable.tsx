@@ -56,11 +56,21 @@ export default function HotoAuditTable() {
   const [cityList, setCityList] = useState<CityItem[]>([]);
   const [auditRecords, setAuditRecords] = useState<Record<string, string>[]>([]);
 
-  // Date range using react-advance-datepicker
+  // Date range using react-advance-datepicker.
+  // Initialized to null and set on the client after mount to avoid SSR
+  // hydration mismatches from time-dependent Date() values.
   const [dateValue, setDateValue] = useState<DateRangeType>({
-    startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
-    endDate: new Date(),
+    startDate: null,
+    endDate: null,
   });
+
+  // Set the default date range (last 1 year) on the client only
+  useEffect(() => {
+    setDateValue({
+      startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+      endDate: new Date(),
+    });
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [pageSize, setPageSize] = useState(20);
@@ -377,6 +387,7 @@ export default function HotoAuditTable() {
 
   return (
     <Box sx={{ display: "flex", justifyContent: "center" }}>
+      
       <Paper elevation={0} sx={{ p: 2.5, width: "100%", maxWidth: 1360 }}>
         <Stack
           direction={{ xs: "column", lg: "row" }}
@@ -387,9 +398,9 @@ export default function HotoAuditTable() {
             mb: 2,
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a" }}>
+          {/* <Typography variant="h5" sx={{ fontWeight: 700, color: "#0f172a" }}>
             HOTO
-          </Typography>
+          </Typography> */}
         </Stack>
 
         {/* Filters */}
@@ -531,7 +542,7 @@ export default function HotoAuditTable() {
           variant="outlined"
           sx={{
             minHeight: 360,
-            maxHeight: 520,
+            maxHeight: 430,
             overflow: "auto",
             borderRadius: 2,
           }}
@@ -546,9 +557,9 @@ export default function HotoAuditTable() {
                       sx={{
                         fontWeight: 700,
                         whiteSpace: "nowrap",
-                        backgroundColor: "#dbeafe",
-                        color: "#1e3a8a",
-                        borderBottomColor: "#bfdbfe",
+                        backgroundColor: "#e4e4e7",
+                        color: "#71717a",
+                        borderBottomColor: "#d4d4d8",
                         ...(column === "final_status"
                           ? { position: "sticky", right: 0, zIndex: 3 }
                           : {}),
@@ -558,6 +569,14 @@ export default function HotoAuditTable() {
                         active={sortKey === column}
                         direction={sortKey === column ? sortDirection : "asc"}
                         onClick={() => handleSort(column)}
+                        sx={{
+                          color: "#71717a !important",
+                          "&:hover": { color: "#71717a !important" },
+                          "&.Mui-active": { color: "#71717a !important" },
+                          "& .MuiTableSortLabel-icon": {
+                            color: "#71717a !important",
+                          },
+                        }}
                       >
                         {formatColumnLabel(column)}
                       </TableSortLabel>
