@@ -7,7 +7,6 @@ import {
   Alert,
   Box,
   Button,
-  IconButton,
   InputAdornment,
   Link as MuiLink,
   Snackbar,
@@ -140,7 +139,7 @@ export default function LoginPage() {
       }
 
       const data = body.data ?? body ?? {};
-      loginWithData({ mobile, ...data });
+      loginWithData({ ...data });
 
       showToast("Login successful.", "success");
       router.replace("/dashboard");

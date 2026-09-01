@@ -23,7 +23,6 @@ interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => boolean;
   loginWithData: (data: AuthUser) => void;
   logout: () => void;
 }
@@ -49,17 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback((username: string, password: string) => {
-    // Simple demo auth. Replace with a real API call as needed.
-    if (username.trim() && password.trim()) {
-      const nextUser = { username };
-      setUser(nextUser);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
-      return true;
-    }
-    return false;
-  }, []);
-
   // Store authenticated user data (e.g. after OTP verification)
   const loginWithData = useCallback((data: AuthUser) => {
     setUser(data);
@@ -77,7 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isAuthenticated: !!user,
         isLoading,
-        login,
         loginWithData,
         logout,
       }}
