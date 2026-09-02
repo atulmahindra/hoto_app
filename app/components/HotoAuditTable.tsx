@@ -7,6 +7,7 @@ import {
   Box,
   Chip,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
@@ -21,9 +22,12 @@ import {
   TableRow,
   TableSortLabel,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
 import dayjs from "dayjs";
+import * as XLSX from "xlsx";
 import Datepicker, { DateRangeType } from "react-advance-datepicker";
 
 interface CityItem {
@@ -43,6 +47,20 @@ const parseAuditDate = (value: string) => {
   const [datePart = "", timePart = "00:00:00"] = String(value).split(" ");
   return new Date(`${datePart}T${timePart}`);
 };
+
+// Inspection columns where "1" means Ok and "0" means Not Ok
+const INSPECTION_COLUMNS = new Set([
+  "front_exterior",
+  "rear_exterior",
+  "left_side_panels",
+  "left_fender",
+  "mirrors",
+  "lighting",
+  "stepney",
+  "interior",
+  "right_side_panels",
+  "right_fender",
+]);
 
 const formatColumnLabel = (key: string) => {
   return String(key)
@@ -64,10 +82,12 @@ export default function HotoAuditTable() {
     endDate: null,
   });
 
-  // Set the default date range (last 1 year) on the client only
+  // Set the default date range (last 1 month) on the client only
   useEffect(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
     setDateValue({
-      startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+      startDate: start,
       endDate: new Date(),
     });
   }, []);
@@ -80,7 +100,7 @@ export default function HotoAuditTable() {
   const [locationFilter, setLocationFilter] = useState("All Locations");
   const [cityYardMapping, setCityYardMapping] = useState<CityYardMapping[]>([]);
   const [yardFilter, setYardFilter] = useState("All Yards");
-  const [activeShortcut, setActiveShortcut] = useState("");
+  const [activeShortcut, setActiveShortcut] = useState("1 Month");
 
   // Fetch master data (city-yard mapping)
   useEffect(() => {
@@ -208,9 +228,13 @@ export default function HotoAuditTable() {
 
   const displayColumns = useMemo(() => {
     if (columns.length === 0) return [];
-    const finalStatusKey = columns.find((col) => col === "final_status");
-    if (!finalStatusKey) return columns;
-    return [...columns.filter((col) => col !== finalStatusKey), finalStatusKey];
+    // Hide the audit id column
+    const visible = columns.filter(
+      (col) => col.toLowerCase() !== "audit_id" && col.toLowerCase() !== "auditid"
+    );
+    const finalStatusKey = visible.find((col) => col === "final_status");
+    if (!finalStatusKey) return visible;
+    return [...visible.filter((col) => col !== finalStatusKey), finalStatusKey];
   }, [columns]);
 
   const tableColSpan = Math.max(displayColumns.length, 1);
@@ -310,11 +334,40 @@ export default function HotoAuditTable() {
     setSearchTerm("");
     setLocationFilter("All Locations");
     setYardFilter("All Yards");
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
     setDateValue({
-      startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+      startDate: start,
       endDate: new Date(),
     });
+    setActiveShortcut("1 Month");
     setCurrentPage(0);
+  };
+
+  // Export the currently filtered/sorted rows to an Excel file
+  const handleDownloadExcel = () => {
+    if (sortedRows.length === 0) return;
+
+    const exportData = sortedRows.map((row) => {
+      const record: Record<string, unknown> = {};
+      displayColumns.forEach((col) => {
+        let value: unknown = row[col] ?? "";
+        if (INSPECTION_COLUMNS.has(col.toLowerCase())) {
+          if (String(row[col]) === "1") value = "Ok";
+          else if (String(row[col]) === "0") value = "Not Ok";
+        }
+        record[formatColumnLabel(col)] = value;
+      });
+      return record;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "HOTO Audit");
+    XLSX.writeFile(
+      wb,
+      `HOTO_Audit_${dayjs().format("YYYY-MM-DD")}.xlsx`
+    );
   };
 
   // Custom date-range shortcuts
@@ -525,13 +578,36 @@ export default function HotoAuditTable() {
                 }}
                 sx={{ width: { xs: "100%", sm: 240 } }}
               />
+             
               <Button
-                variant="outlined"
+                variant="contained"
                 onClick={handleResetFilters}
-                sx={{ minWidth: 110 }}
+                sx={{
+                  height: 40,
+                  minWidth: 110,
+                  backgroundColor: "#097aa2",
+                  "&:hover": { backgroundColor: "#075f7e" },
+                }}
               >
                 Reset
               </Button>
+               <Tooltip title="Download Excel">
+                <span>
+                  <IconButton
+                    onClick={handleDownloadExcel}
+                    disabled={sortedRows.length === 0}
+                    sx={{
+                      height: 40,
+                      width: 40,
+                      border: "1px solid rgba(0,0,0,0.23)",
+                      borderRadius: 1,
+                      color: "#097aa2",
+                    }}
+                  >
+                    <DownloadIcon />
+                  </IconButton>
+                </span>
+              </Tooltip>
             </Stack>
           </Stack>
         </Paper>
@@ -640,6 +716,12 @@ export default function HotoAuditTable() {
                                     }),
                             }}
                           />
+                        ) : INSPECTION_COLUMNS.has(column.toLowerCase()) ? (
+                          String(row[column]) === "1"
+                            ? "Ok"
+                            : String(row[column]) === "0"
+                              ? "Not Ok"
+                              : row[column] || "-"
                         ) : (
                           row[column] || "-"
                         )}
