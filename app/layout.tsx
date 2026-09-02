@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Travel Planner",
-  description: "Choose dates for your next trip.",
+  title: "HOTO App",
+  description: "HOTO vehicle audit and manual credit/debit upload dashboard.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
