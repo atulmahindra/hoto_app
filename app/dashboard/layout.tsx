@@ -21,6 +21,7 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
@@ -31,6 +32,11 @@ const DRAWER_WIDTH = 240;
 const navItems = [
   { label: "HOTO Audit", href: "/dashboard", icon: <TableChartIcon /> },
   {
+    label: "Driver Self Audit",
+    href: "/dashboard/driver-self-audit",
+    icon: <FactCheckIcon />,
+  },
+  {
     label: "Manual Upload",
     href: "/dashboard/hoto-upload",
     icon: <UploadFileIcon />,
@@ -40,6 +46,10 @@ const navItems = [
 // Page title + breadcrumb trail per route
 const pageMeta: Record<string, { title: string; trail: string[] }> = {
   "/dashboard": { title: "HOTO Audit", trail: ["HOTO Audit"] },
+  "/dashboard/driver-self-audit": {
+    title: "Driver Self Audit",
+    trail: ["Driver Self Audit"],
+  },
   "/dashboard/hoto-upload": {
     title: "Manual Credit/Debit Upload",
     trail: ["Manual Upload"],
