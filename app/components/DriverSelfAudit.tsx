@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import {
   Box,
   Button,
   Chip,
+  Divider,
+  Drawer,
   FormControl,
   IconButton,
   InputLabel,
@@ -25,6 +28,10 @@ import {
   Typography,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CloseIcon from "@mui/icons-material/Close";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
 import Datepicker, { DateRangeType } from "react-advance-datepicker";
@@ -45,8 +52,14 @@ const INSPECTION_COLUMNS = new Set([
   "right_fender",
 ]);
 
-const CITIES = ["Hyderabad", "Delhi", "Gurugram", "Noida", "Faridabad"];
-const STATUSES = ["Accepted", "Rejected", "Pending"];
+const API_HOST = "https://alytehotoapi.mllqa.com";
+// Driver QC response data is served from the local API
+const QC_API_HOST = "https://alytehotoapi.mllqa.com";
+
+interface CityItem {
+  id: string | number;
+  city_name: string;
+}
 
 const formatColumnLabel = (key: string) =>
   String(key)
@@ -55,52 +68,16 @@ const formatColumnLabel = (key: string) =>
     .trim()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-const parseAuditDate = (value: string) => {
-  const [datePart = "", timePart = "00:00:00"] = String(value).split(" ");
-  return new Date(`${datePart}T${timePart}`);
-};
+type AuditRow = Record<string, unknown>;
 
-// ─── Dummy data ────────────────────────────────────────────────────────────
-const pad = (n: number) => String(n).padStart(2, "0");
-
-const DUMMY_RECORDS: Record<string, string>[] = Array.from(
-  { length: 45 },
-  (_, index) => {
-    const city = CITIES[index % CITIES.length];
-    const status = STATUSES[index % STATUSES.length];
-    const daysAgo = index; // spread over ~45 days
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
-      d.getDate()
-    )} ${pad(9 + (index % 8))}:${pad(index % 60)}:00`;
-
-    const ok = (seed: number) => String((index + seed) % 5 === 0 ? 0 : 1);
-
-    return {
-      audit_id: String(1000 + index),
-      audit_date: dateStr,
-      driver_id: String(10100000 + index),
-      vehicle_number: `TG05AG${String(7000 + index).padStart(4, "0")}`,
-      city,
-      yard: `${city} Yard ${(index % 4) + 1}`,
-      front_exterior: ok(0),
-      rear_exterior: ok(1),
-      left_side_panels: ok(2),
-      left_fender: ok(3),
-      mirrors: ok(4),
-      lighting: ok(0),
-      stepney: ok(1),
-      interior: ok(2),
-      right_side_panels: ok(3),
-      right_fender: ok(4),
-      odometer_reading: String(20000 + index * 37),
-      final_status: status,
-    };
-  }
-);
+// Column that holds the QC questions (shown in the side card, not the table)
+const QUESTIONS_KEY = "questions";
 
 export default function DriverSelfAudit() {
+  const [auditRecords, setAuditRecords] = useState<AuditRow[]>([]);
+  const [selectedRow, setSelectedRow] = useState<AuditRow | null>(null);
+  const [cityList, setCityList] = useState<CityItem[]>([]);
+
   // Filters
   const [locationFilter, setLocationFilter] = useState("All Locations");
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,6 +97,28 @@ export default function DriverSelfAudit() {
     const start = new Date();
     start.setDate(start.getDate() - 30);
     setDateValue({ startDate: start, endDate: new Date() });
+  }, []);
+
+  // Fetch city list (same source as HOTO Audit)
+  useEffect(() => {
+    const fetchCityList = async () => {
+      try {
+        const response = await axios.post(
+          `${API_HOST}/api/v1/master/citylist`,
+          {}
+        );
+        const data = response.data.data;
+        const source = Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data)
+            ? data
+            : [];
+        setCityList(source);
+      } catch (error) {
+        console.error("Failed to fetch city list:", error);
+      }
+    };
+    fetchCityList();
   }, []);
 
   // Highlight the active shortcut button by matching its text
@@ -213,56 +212,99 @@ export default function DriverSelfAudit() {
     };
   }, []);
 
-  const tableData = DUMMY_RECORDS;
+  // Derived date range strings + selected city id
+  const dateRange = useMemo(
+    () => ({
+      fromDate: dateValue?.startDate
+        ? dayjs(dateValue.startDate).format("YYYY-MM-DD")
+        : "",
+      toDate: dateValue?.endDate
+        ? dayjs(dateValue.endDate).format("YYYY-MM-DD")
+        : "",
+    }),
+    [dateValue]
+  );
+
+  const selectedCityId = useMemo(() => {
+    if (locationFilter === "All Locations") return "";
+    const selectedCity = cityList.find(
+      (item) => item.city_name === locationFilter
+    );
+    return selectedCity?.id ?? "";
+  }, [cityList, locationFilter]);
+
+  // Fetch Driver Self Audit / QC response data
+  useEffect(() => {
+    const fetchDriverQcData = async () => {
+      try {
+        const payload = {
+          city_id: String(selectedCityId || "1"),
+          fromDate: dateRange.fromDate,
+          toDate: dateRange.toDate,
+        };
+
+        const response = await axios.post(
+          `${QC_API_HOST}/api/v1/vehicle/driver-qc-response-data`,
+          payload
+        );
+
+        console.log("DSA", response.data);
+
+        const data = response.data?.data;
+        const records = Array.isArray(data?.records)
+          ? data.records
+          : Array.isArray(data)
+            ? data
+            : [];
+        setAuditRecords(records);
+      } catch (error) {
+        console.error("Failed to fetch Driver QC response data:", error);
+        setAuditRecords([]);
+      }
+    };
+
+    if (dateRange.fromDate && dateRange.toDate) {
+      fetchDriverQcData();
+    }
+  }, [selectedCityId, dateRange.fromDate, dateRange.toDate]);
+
+  const tableData = auditRecords;
   const columns = useMemo(() => Object.keys(tableData[0] || {}), [tableData]);
 
   const displayColumns = useMemo(() => {
     if (columns.length === 0) return [];
     const visible = columns.filter(
       (col) =>
-        col.toLowerCase() !== "audit_id" && col.toLowerCase() !== "auditid"
+        col.toLowerCase() !== "audit_id" &&
+        col.toLowerCase() !== "auditid" &&
+        col.toLowerCase() !== QUESTIONS_KEY
     );
     const finalStatusKey = visible.find((col) => col === "final_status");
     if (!finalStatusKey) return visible;
     return [...visible.filter((col) => col !== finalStatusKey), finalStatusKey];
   }, [columns]);
 
-  const tableColSpan = Math.max(displayColumns.length, 1);
+  const tableColSpan = Math.max(displayColumns.length + 1, 1);
 
-  const locationOptions = useMemo(() => ["All Locations", ...CITIES], []);
+  const locationOptions = useMemo(() => {
+    const uniqueCities =
+      cityList.length > 0
+        ? cityList.map((row) => row.city_name).filter(Boolean)
+        : [];
+    return ["All Locations", ...uniqueCities];
+  }, [cityList]);
 
-  // ─── Filtering ──────────────────────────────────────────────────────────
+  // ─── Filtering (search only; city + date handled by the API) ─────────────
   const filteredRows = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    const startBoundary = dateValue?.startDate
-      ? dayjs(dateValue.startDate).startOf("day").toDate()
-      : null;
-    const endBoundary = dateValue?.endDate
-      ? dayjs(dateValue.endDate).endOf("day").toDate()
-      : null;
+    if (!query) return tableData;
 
-    return tableData.filter((row) => {
-      // City
-      if (locationFilter !== "All Locations" && row.city !== locationFilter) {
-        return false;
-      }
-
-      // Date range
-      const rowDate = parseAuditDate(row.audit_date);
-      if (startBoundary && rowDate < startBoundary) return false;
-      if (endBoundary && rowDate > endBoundary) return false;
-
-      // Global search
-      if (query) {
-        const match = columns.some((col) =>
-          String(row[col] ?? "").toLowerCase().includes(query)
-        );
-        if (!match) return false;
-      }
-
-      return true;
-    });
-  }, [tableData, columns, locationFilter, searchTerm, dateValue]);
+    return tableData.filter((row) =>
+      columns.some((col) =>
+        String(row[col] ?? "").toLowerCase().includes(query)
+      )
+    );
+  }, [tableData, columns, searchTerm]);
 
   // ─── Sorting ────────────────────────────────────────────────────────────
   const sortedRows = useMemo(() => {
@@ -516,6 +558,17 @@ export default function DriverSelfAudit() {
                       </TableSortLabel>
                     </TableCell>
                   ))}
+                  <TableCell
+                    sx={{
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      backgroundColor: "#e4e4e7",
+                      color: "#71717a",
+                      borderBottomColor: "#d4d4d8",
+                    }}
+                  >
+                    Action
+                  </TableCell>
                 </TableRow>
               </TableHead>
             )}
@@ -524,7 +577,7 @@ export default function DriverSelfAudit() {
                 paginatedRows.map((row, index) => (
                   <TableRow
                     hover
-                    key={`${row.vehicle_number}-${safePage}-${index}`}
+                    key={`row-${safePage}-${index}`}
                     sx={{
                       "&:nth-of-type(odd)": { backgroundColor: "#f8fafc" },
                       "&:nth-of-type(even)": { backgroundColor: "#ffffff" },
@@ -552,7 +605,7 @@ export default function DriverSelfAudit() {
                         {column === "final_status" ? (
                           <Chip
                             size="small"
-                            label={row[column] || "-"}
+                            label={String(row[column] ?? "-") || "-"}
                             sx={{
                               fontWeight: 700,
                               ...(String(row[column]).toLowerCase() ===
@@ -581,12 +634,31 @@ export default function DriverSelfAudit() {
                             ? "Ok"
                             : String(row[column]) === "0"
                               ? "Not Ok"
-                              : row[column] || "-"
+                              : (row[column] as React.ReactNode) || "-"
                         ) : (
-                          row[column] || "-"
+                          (row[column] as React.ReactNode) ?? "-"
                         )}
                       </TableCell>
                     ))}
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<VisibilityIcon fontSize="small" />}
+                        onClick={() => setSelectedRow(row)}
+                        sx={{
+                          textTransform: "none",
+                          color: "#097aa2",
+                          borderColor: "#097aa2",
+                          "&:hover": {
+                            borderColor: "#075f7e",
+                            backgroundColor: "rgba(9,122,162,0.06)",
+                          },
+                        }}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
@@ -627,6 +699,167 @@ export default function DriverSelfAudit() {
           />
         </Stack>
       </Paper>
+
+      {/* Side card / drawer showing the selected row's questions */}
+      <Drawer
+        anchor="right"
+        open={!!selectedRow}
+        onClose={() => setSelectedRow(null)}
+        slotProps={{ paper: { sx: { width: { xs: "100%", sm: 420 } } } }}
+      >
+        <Box sx={{ p: 2.5 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 0,
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 700, color: "#0f172a" }}>
+              QC Questions
+            </Typography>
+            <IconButton onClick={() => setSelectedRow(null)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          {selectedRow && (
+            <>
+              {/* A couple of identifying details */}
+              <Stack spacing={0.5} sx={{ mb: 2 }}>
+                {["driver_id", "vehicle_number", "city", "audit_date"].map(
+                  (key) =>
+                    selectedRow[key] != null && selectedRow[key] !== "" ? (
+                      <Typography
+                        key={key}
+                        variant="body2"
+                        sx={{ color: "#475569" }}
+                      >
+                        <strong>{formatColumnLabel(key)}:</strong>{" "}
+                        {String(selectedRow[key])}
+                      </Typography>
+                    ) : null
+                )}
+              </Stack>
+
+              <Divider sx={{ mb: 2 }} />
+
+              {/* Questions list */}
+              {(() => {
+                const q = selectedRow[QUESTIONS_KEY];
+                const list = Array.isArray(q)
+                  ? q
+                  : q && typeof q === "object"
+                    ? Object.entries(q as Record<string, unknown>).map(
+                        ([k, v]) => ({ question: k, answer: v })
+                      )
+                    : [];
+
+                if (list.length === 0) {
+                  return (
+                    <Typography variant="body2" sx={{ color: "#94a3b8" }}>
+                      No questions available.
+                    </Typography>
+                  );
+                }
+
+                return (
+                  <Stack spacing={1}>
+                    {list.map((item, i) => {
+                      const rec = item as Record<string, unknown>;
+                      const questionText =
+                        (rec.question as string) ??
+                        (rec.title as string) ??
+                        (rec.label as string) ??
+                        (rec.name as string) ??
+                        `Question ${i + 1}`;
+                      const answerRaw =
+                        rec.answer ?? rec.response ?? rec.value ?? rec.status;
+
+                      const normalized = String(answerRaw ?? "")
+                        .trim()
+                        .toLowerCase();
+                      const isYes = ["1", "yes", "ok", "true"].includes(
+                        normalized
+                      );
+                      const isNo = ["0", "no", "not ok", "false"].includes(
+                        normalized
+                      );
+
+                      return (
+                        <Paper
+                          key={i}
+                          variant="outlined"
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            justifyContent: "space-between",
+                            gap: 1.5,
+                          }}
+                        >
+                          {/* Question text (left) */}
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color: "#334155",
+                              flex: 1,
+                              minWidth: 0,
+                              lineHeight: 1.4,
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {questionText}
+                          </Typography>
+
+                          {/* Answer + icon (right, fixed width) */}
+                          <Box
+                            sx={{
+                              flexShrink: 0,
+                              width: 64,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: 0.5,
+                              fontSize: "0.8125rem",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                              color: isYes
+                                ? "#166534"
+                                : isNo
+                                  ? "#b91c1c"
+                                  : "#475569",
+                            }}
+                          >
+                            {isYes ? (
+                              <>
+                                <CheckCircleIcon fontSize="small" />
+                                Yes
+                              </>
+                            ) : isNo ? (
+                              <>
+                                <CancelIcon fontSize="small" />
+                                No
+                              </>
+                            ) : answerRaw != null && String(answerRaw) !== "" ? (
+                              String(answerRaw)
+                            ) : (
+                              "-"
+                            )}
+                          </Box>
+                        </Paper>
+                      );
+                    })}
+                  </Stack>
+                );
+              })()}
+            </>
+          )}
+        </Box>
+      </Drawer>
     </Box>
   );
 }
