@@ -52,8 +52,8 @@ div.absolute.z-10.opacity-1 {
 
 /* Active date-range shortcut highlight */
 .hoto-shortcut-active {
-  background-color: #dbeafe !important;
-  color: #1e3a8a !important;
+  background-color: rgba(9, 122, 162, 0.12) !important;
+  color: #097aa2 !important;
   font-weight: 700 !important;
 }
 
@@ -70,4 +70,22 @@ div.absolute.z-10.opacity-1 {
 /* Override react-advance-datepicker calendar panel min-height (285px -> 240px) */
 .hoto-datepicker .min-h-\[285px\] {
   min-height: 240px !important;
+}
+
+/* Match react-advance-datepicker selection + Apply button to theme color */
+.hoto-datepicker .bg-blue-500 {
+  background-color: #097aa2 !important;
+}
+.hoto-datepicker .hover\:bg-blue-600:hover {
+  background-color: #075f7e !important;
+}
+.hoto-datepicker .bg-blue-100 {
+  background-color: #cfeaf3 !important;
+}
+.hoto-datepicker .bg-blue-200 {
+  background-color: #a9d9e8 !important;
+}
+/* Range endpoints / selected text color */
+.hoto-datepicker .text-blue-500 {
+  color: #097aa2 !important;
 }
