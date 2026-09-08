@@ -22,6 +22,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
+import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
@@ -37,6 +38,11 @@ const navItems = [
     icon: <FactCheckIcon />,
   },
   {
+    label: "Ops Audit",
+    href: "/dashboard/ops-audit",
+    icon: <AssignmentTurnedInIcon />,
+  },
+  {
     label: "Manual Upload",
     href: "/dashboard/hoto-upload",
     icon: <UploadFileIcon />,
@@ -49,6 +55,10 @@ const pageMeta: Record<string, { title: string; trail: string[] }> = {
   "/dashboard/driver-self-audit": {
     title: "Driver Self Audit",
     trail: ["Driver Self Audit"],
+  },
+  "/dashboard/ops-audit": {
+    title: "Ops Audit",
+    trail: ["Ops Audit"],
   },
   "/dashboard/hoto-upload": {
     title: "Manual Credit/Debit Upload",
