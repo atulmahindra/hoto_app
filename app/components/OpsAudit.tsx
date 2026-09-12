@@ -35,6 +35,8 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
 import Datepicker, { DateRangeType } from "react-advance-datepicker";
+import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL, QC_API_BASE_URL } from "../config/api";
 
 type SortDirection = "asc" | "desc";
 
@@ -52,7 +54,8 @@ const INSPECTION_COLUMNS = new Set([
   "right_fender",
 ]);
 
-const API_HOST = "https://alytehotoapi.mllqa.com";
+const API_HOST = API_BASE_URL;
+const QC_API_HOST = QC_API_BASE_URL;
 
 interface CityItem {
   id: string | number;
@@ -118,7 +121,9 @@ const DUMMY_RECORDS: AuditRow[] = Array.from({ length: 42 }, (_, index) => {
 });
 
 export default function OpsAudit() {
+  const { user } = useAuth();
   const [auditRecords, setAuditRecords] = useState<AuditRow[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [selectedRow, setSelectedRow] = useState<AuditRow | null>(null);
   const [cityList, setCityList] = useState<CityItem[]>([]);
 
@@ -269,18 +274,10 @@ export default function OpsAudit() {
     [dateValue]
   );
 
-  const selectedCityId = useMemo(() => {
-    if (locationFilter === "All Locations") return "";
-    const selectedCity = cityList.find(
-      (item) => item.city_name === locationFilter
-    );
-    return selectedCity?.id ?? "";
-  }, [cityList, locationFilter]);
-
   // Load Ops Audit records from dummy data, filtered by city + date range
   useEffect(() => {
-    console.log("OpsAudit", {
-      city_id: String(selectedCityId || ""),
+    console.log("OPSAudit", {
+      city: locationFilter,
       fromDate: dateRange.fromDate,
       toDate: dateRange.toDate,
     });
@@ -289,11 +286,9 @@ export default function OpsAudit() {
     const end = dateRange.toDate ? dayjs(dateRange.toDate) : null;
 
     const records = DUMMY_RECORDS.filter((row) => {
-      // City filter
       if (locationFilter !== "All Locations" && row.city !== locationFilter) {
         return false;
       }
-      // Date range filter
       const rowDate = dayjs(String(row.audit_date).split(" ")[0]);
       if (start && rowDate.isBefore(start, "day")) return false;
       if (end && rowDate.isAfter(end, "day")) return false;
@@ -301,7 +296,8 @@ export default function OpsAudit() {
     });
 
     setAuditRecords(records);
-  }, [selectedCityId, locationFilter, dateRange.fromDate, dateRange.toDate]);
+    setTotalRecords(records.length);
+  }, [locationFilter, dateRange.fromDate, dateRange.toDate]);
 
   const tableData = auditRecords;
   const columns = useMemo(() => Object.keys(tableData[0] || {}), [tableData]);

@@ -23,6 +23,9 @@ import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api";
+
+const API_HOST = API_BASE_URL;
 
 // ─── Transaction Type Master ────────────────────────────────────────────────
 const TRANSACTION_TYPES = [
@@ -332,7 +335,7 @@ export default function HotoUpload() {
       };
 
       const response = await axios.post(
-        "https://alytehotoapi.mllqa.com/api/v1/vehicle/manual-upload",
+        `${API_HOST}/api/v1/vehicle/manual-upload`,
         payload
       );
 

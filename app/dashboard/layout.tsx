@@ -1,4 +1,4 @@
-"use client";
+"use client";"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -23,6 +23,7 @@ import TableChartIcon from "@mui/icons-material/TableChart";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
@@ -43,6 +44,11 @@ const navItems = [
     icon: <AssignmentTurnedInIcon />,
   },
   {
+    label: "Cash Receipt",
+    href: "/dashboard/cash-receipt",
+    icon: <PaymentsIcon />,
+  },
+  {
     label: "Manual Upload",
     href: "/dashboard/hoto-upload",
     icon: <UploadFileIcon />,
@@ -59,6 +65,10 @@ const pageMeta: Record<string, { title: string; trail: string[] }> = {
   "/dashboard/ops-audit": {
     title: "Ops Audit",
     trail: ["Ops Audit"],
+  },
+  "/dashboard/cash-receipt": {
+    title: "Cash Receipt",
+    trail: ["Cash Receipt"],
   },
   "/dashboard/hoto-upload": {
     title: "Manual Credit/Debit Upload",

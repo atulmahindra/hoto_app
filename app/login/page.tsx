@@ -16,8 +16,9 @@ import {
 import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from "../config/api";
 
-const API_HOST = "https://alytehotoapi.mllqa.com";
+const API_HOST = API_BASE_URL;
 const ENTITY = 1;
 const OTP_LENGTH = 4;
 

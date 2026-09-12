@@ -29,6 +29,9 @@ import DownloadIcon from "@mui/icons-material/Download";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
 import Datepicker, { DateRangeType } from "react-advance-datepicker";
+import { API_BASE_URL } from "../config/api";
+
+const API_HOST = API_BASE_URL;
 
 interface CityItem {
   id: string | number;
@@ -107,7 +110,7 @@ export default function HotoAuditTable() {
     const fetchMasterData = async () => {
       try {
         const response = await axios.post(
-          "https://alytehotoapi.mllqa.com/api/v1/master/data",
+          `${API_HOST}/api/v1/master/data`,
           { entity: "1" }
         );
         console.log("set_data", response.data);
@@ -150,7 +153,7 @@ export default function HotoAuditTable() {
     const fetchCityList = async () => {
       try {
         const response = await axios.post(
-          "https://alytehotoapi.mllqa.com/api/v1/master/citylist",
+          `${API_HOST}/api/v1/master/citylist`,
           {}
         );
         const data = response.data.data;
@@ -203,7 +206,7 @@ export default function HotoAuditTable() {
         };
 
         const response = await axios.post(
-          "https://alytehotoapi.mllqa.com/api/v1/vehicle/vehicle-checklist-audit",
+          `${API_HOST}/api/v1/vehicle/vehicle-checklist-audit`,
           payload
         );
 

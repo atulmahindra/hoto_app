@@ -35,6 +35,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
 import Datepicker, { DateRangeType } from "react-advance-datepicker";
+import { API_BASE_URL, QC_API_BASE_URL } from "../config/api";
 
 type SortDirection = "asc" | "desc";
 
@@ -52,9 +53,8 @@ const INSPECTION_COLUMNS = new Set([
   "right_fender",
 ]);
 
-const API_HOST = "https://alytehotoapi.mllqa.com";
-// Driver QC response data is served from the local API
-const QC_API_HOST = "https://alytehotoapi.mllqa.com";
+const API_HOST = API_BASE_URL;
+const QC_API_HOST = QC_API_BASE_URL;
 
 interface CityItem {
   id: string | number;
