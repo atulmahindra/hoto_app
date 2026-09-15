@@ -45,7 +45,7 @@ const INITIAL_FORM: FormState = {
 };
 
 export default function CashReceipt() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>(
     {}
@@ -112,7 +112,11 @@ export default function CashReceipt() {
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
-      const token = (user?.token as string) ?? "";
+      const token = getToken();
+      if (!token) {
+        console.warn("No auth token found on user:", user);
+      }
+
       const payload = {
         driverOrPartnerId: form.driverOrPartnerId.trim(),
         cabNumber: form.cabNumber.trim(),

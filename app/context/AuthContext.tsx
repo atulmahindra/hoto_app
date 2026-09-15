@@ -25,6 +25,25 @@ interface AuthContextType {
   isLoading: boolean;
   loginWithData: (data: AuthUser) => void;
   logout: () => void;
+  getToken: () => string;
+}
+
+// Pull the auth token from a user object regardless of the field name used
+export function extractToken(user: AuthUser | null): string {
+  if (!user) return "";
+  const u = user as Record<string, unknown>;
+  const nested = (u.user ?? u.data ?? {}) as Record<string, unknown>;
+  return String(
+    u.token ??
+      u.access_token ??
+      u.accessToken ??
+      u.authToken ??
+      u.jwt ??
+      nested.token ??
+      nested.access_token ??
+      nested.accessToken ??
+      ""
+  );
 }
 
 const AUTH_STORAGE_KEY = "hoto_auth_user";
@@ -59,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   }, []);
 
+  const getToken = useCallback(() => extractToken(user), [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -67,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         loginWithData,
         logout,
+        getToken,
       }}
     >
       {children}
