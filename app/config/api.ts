@@ -12,6 +12,7 @@
 const ENVIRONMENTS = {
   dev: "https://alytehotoapi.mllqa.com",
   local: "http://localhost:5001",
+  qc: "https://alyteqc.mllqa.com",
 } as const;
 
 type ApiEnv = keyof typeof ENVIRONMENTS;
@@ -26,4 +27,7 @@ export const API_BASE_URL =
 
 // QC reports API base URL (defaults to the primary base URL)
 export const QC_API_BASE_URL =
-  process.env.NEXT_PUBLIC_QC_API_BASE_URL || API_BASE_URL;
+  process.env.NEXT_PUBLIC_QC_API_BASE_URL ||
+  (process.env.NEXT_PUBLIC_API_ENV === "local"
+    ? ENVIRONMENTS.local
+    : ENVIRONMENTS.qc);

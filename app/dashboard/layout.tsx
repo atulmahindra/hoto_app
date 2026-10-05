@@ -44,6 +44,11 @@ const navItems = [
     icon: <AssignmentTurnedInIcon />,
   },
   {
+    label: "QC Reports",
+    href: "/dashboard/qc-reports",
+    icon: <FactCheckIcon />,
+  },
+  {
     label: "Cash Receipt",
     href: "/dashboard/cash-receipt",
     icon: <PaymentsIcon />,
@@ -65,6 +70,10 @@ const pageMeta: Record<string, { title: string; trail: string[] }> = {
   "/dashboard/ops-audit": {
     title: "Ops Audit",
     trail: ["Ops Audit"],
+  },
+  "/dashboard/qc-reports": {
+    title: "QC Reports",
+    trail: ["QC Reports"],
   },
   "/dashboard/cash-receipt": {
     title: "Cash Receipt",
