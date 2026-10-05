@@ -39,11 +39,6 @@ const navItems = [
     icon: <FactCheckIcon />,
   },
   {
-    label: "Ops Audit",
-    href: "/dashboard/ops-audit",
-    icon: <AssignmentTurnedInIcon />,
-  },
-  {
     label: "QC Reports",
     href: "/dashboard/qc-reports",
     icon: <FactCheckIcon />,
@@ -66,10 +61,6 @@ const pageMeta: Record<string, { title: string; trail: string[] }> = {
   "/dashboard/driver-self-audit": {
     title: "Driver Self Audit",
     trail: ["Driver Self Audit"],
-  },
-  "/dashboard/ops-audit": {
-    title: "Ops Audit",
-    trail: ["Ops Audit"],
   },
   "/dashboard/qc-reports": {
     title: "QC Reports",
