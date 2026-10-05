@@ -12,7 +12,7 @@
 const ENVIRONMENTS = {
   dev: "https://alytehotoapi.mllqa.com",
   local: "http://localhost:5001",
-  qc: "https://alyteqc.mllqa.com",
+  qc: "http://alyteqcapi.mllqa.com",
 } as const;
 
 type ApiEnv = keyof typeof ENVIRONMENTS;
