@@ -13,6 +13,7 @@ const ENVIRONMENTS = {
   dev: "https://alytehotoapi.mllqa.com",
   local: "http://localhost:5001",
   qc: "https://alyteqcapi.mllqa.com",
+  driverSelfAudit: "https://alytehotoapi.mllqa.com",
 } as const;
 
 type ApiEnv = keyof typeof ENVIRONMENTS;
@@ -31,3 +32,7 @@ export const QC_API_BASE_URL =
   (process.env.NEXT_PUBLIC_API_ENV === "local"
     ? ENVIRONMENTS.local
     : ENVIRONMENTS.qc);
+
+export const DRIVER_SELF_AUDIT_API_BASE_URL =
+  process.env.NEXT_PUBLIC_DRIVER_SELF_AUDIT_API_BASE_URL ||
+  ENVIRONMENTS.driverSelfAudit;

@@ -35,7 +35,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import dayjs from "dayjs";
 import * as XLSX from "xlsx";
 import Datepicker, { DateRangeType } from "react-advance-datepicker";
-import { API_BASE_URL, QC_API_BASE_URL } from "../config/api";
+import { DRIVER_SELF_AUDIT_API_BASE_URL } from "../config/api";
 
 type SortDirection = "asc" | "desc";
 
@@ -53,8 +53,7 @@ const INSPECTION_COLUMNS = new Set([
   "right_fender",
 ]);
 
-const API_HOST = API_BASE_URL;
-const QC_API_HOST = QC_API_BASE_URL;
+const API_HOST = DRIVER_SELF_AUDIT_API_BASE_URL;
 
 interface CityItem {
   id: string | number;
@@ -244,7 +243,7 @@ export default function DriverSelfAudit() {
         };
 
         const response = await axios.post(
-          `${QC_API_HOST}/api/v1/vehicle/driver-qc-response-data`,
+          `${API_HOST}/api/v1/vehicle/driver-qc-response-data`,
           payload
         );
 
