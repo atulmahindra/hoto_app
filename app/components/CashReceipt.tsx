@@ -57,6 +57,7 @@ export default function CashReceipt() {
     {}
   );
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmationMobileNo, setConfirmationMobileNo] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<Toast>({
     open: false,
@@ -213,6 +214,7 @@ export default function CashReceipt() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
+      setConfirmationMobileNo(mobileNo);
       setConfirmOpen(true);
     }
   };
@@ -274,6 +276,7 @@ export default function CashReceipt() {
         "Failed to save cash receipt. Please try again.";
       showToast(message, "error");
     } finally {
+      setMobileNo("");
       setSubmitting(false);
     }
   };
@@ -525,7 +528,7 @@ export default function CashReceipt() {
             <Stack spacing={1.1}>
               {[
                 { label: "Driver Name", value: form.driver },
-                { label: "Mobile Number", value: mobileNo },
+                { label: "Mobile Number", value: confirmationMobileNo },
                 { label: "Operator Type", value: form.operatorType },
                 { label: "Driver ID", value: form.driverId },
                 { label: "Cab Number", value: form.cabNumber },
