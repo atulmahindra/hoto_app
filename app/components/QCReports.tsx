@@ -132,7 +132,8 @@ export default function QCReports() {
     startDate: null,
     endDate: null,
   });
-  const [pageSize, setPageSize] = useState(20);
+  const DEFAULT_PAGE_SIZE = 20;
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortKey, setSortKey] = useState("");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -264,12 +265,15 @@ export default function QCReports() {
     const fetchReport = async () => {
       try {
         const token = getToken();
+        const requestPage = Math.max(1, currentPage + 1);
+        const requestLimit = pageSize || DEFAULT_PAGE_SIZE;
+
         const payload = {
           format: "json",
           startDate: dateRange.fromDate || "2024-01-01",
           endDate: dateRange.toDate || "2024-12-31",
-          page: currentPage + 1,
-          limit: pageSize,
+          page: requestPage,
+          limit: requestLimit,
         };
 
         const response = await axios.post(
@@ -355,13 +359,12 @@ export default function QCReports() {
     return rows;
   }, [filteredRows, sortKey, sortDirection]);
 
-  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
-  const safePage = Math.min(currentPage, totalPages - 1);
-
-  const paginatedRows = useMemo(() => {
-    const start = safePage * pageSize;
-    return sortedRows.slice(start, start + pageSize);
-  }, [sortedRows, safePage, pageSize]);
+  const maxPage = Math.max(
+    0,
+    totalRecords > 0 ? Math.ceil(totalRecords / pageSize) - 1 : 0
+  );
+  const safePage = Math.min(currentPage, maxPage);
+  const paginatedRows = sortedRows;
 
   const hasTableData = displayColumns.length > 0 && paginatedRows.length > 0;
 
