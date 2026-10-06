@@ -1,4 +1,4 @@
-"use client";"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -15,6 +15,7 @@ import {
   ListItemIcon,
   ListItemText,
   Toolbar,
+  Tooltip,
   Typography,
   CircularProgress,
 } from "@mui/material";
@@ -22,11 +23,12 @@ import MenuIcon from "@mui/icons-material/Menu";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
-import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import { useAuth } from "../context/AuthContext";
 
 const DRAWER_WIDTH = 240;
@@ -55,6 +57,102 @@ const navItems = [
   },
 ];
 
+const userConfigNavItems = [
+  {
+    label: "Home",
+    href: "/dashboard",
+    icon: <HomeIcon />,
+  },
+  {
+    label: "Dashboard",
+    href: "/dashboard/user-config",
+    icon: <DashboardIcon />,
+  },
+  {
+    label: "Manage User",
+    href: "/dashboard/user-config/manage-user",
+    icon: <ManageAccountsIcon />,
+  },
+];
+
+const getStringValue = (
+  source: Record<string, unknown>,
+  keys: string[]
+): string => {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" || typeof value === "number") {
+      return String(value);
+    }
+  }
+  return "";
+};
+
+const hasAdminPermission = (value: unknown): boolean => {
+  if (!value) return false;
+
+  if (Array.isArray(value)) {
+    return value.some(hasAdminPermission);
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value).toLowerCase() === "admin";
+  }
+
+  if (typeof value === "object") {
+    const source = value as Record<string, unknown>;
+    const permissionName = getStringValue(source, [
+      "name",
+      "permission_name",
+      "permissionName",
+      "role",
+      "code",
+      "key",
+    ]).toLowerCase();
+
+    return permissionName === "admin";
+  }
+
+  return false;
+};
+
+const isAdminUser = (user: Record<string, unknown> | null) => {
+  if (!user) return false;
+
+  const userDetails =
+    user.user_details && typeof user.user_details === "object"
+      ? (user.user_details as Record<string, unknown>)
+      : {};
+  const nestedUser =
+    user.user && typeof user.user === "object"
+      ? (user.user as Record<string, unknown>)
+      : {};
+
+  const role = getStringValue(
+    { ...nestedUser, ...userDetails, ...user },
+    ["role", "user_role", "userRole", "user_type", "userType", "type"]
+  ).toLowerCase();
+  const hasPermission =
+    hasAdminPermission(user.permissions) ||
+    hasAdminPermission(user.permission) ||
+    hasAdminPermission(userDetails.permissions) ||
+    hasAdminPermission(userDetails.permission) ||
+    hasAdminPermission(nestedUser.permissions) ||
+    hasAdminPermission(nestedUser.permission);
+
+  return (
+    role === "admin" ||
+    role === "administrator" ||
+    hasPermission ||
+    user.is_admin === true ||
+    user.isAdmin === true ||
+    userDetails.is_admin === true ||
+    userDetails.isAdmin === true ||
+    nestedUser.is_admin === true ||
+    nestedUser.isAdmin === true
+  );
+};
+
 // Page title + breadcrumb trail per route
 const pageMeta: Record<string, { title: string; trail: string[] }> = {
   "/dashboard": { title: "HOTO Audit", trail: ["HOTO Audit"] },
@@ -74,6 +172,14 @@ const pageMeta: Record<string, { title: string; trail: string[] }> = {
     title: "Manual Credit/Debit Upload",
     trail: ["Manual Upload"],
   },
+  "/dashboard/user-config": {
+    title: "Dashboard",
+    trail: ["User Config", "Dashboard"],
+  },
+  "/dashboard/user-config/manage-user": {
+    title: "Manage User",
+    trail: ["User Config", "Manage User"],
+  },
 };
 
 export default function DashboardLayout({
@@ -85,6 +191,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isUserConfigSection = pathname.startsWith("/dashboard/user-config");
+  const isAdmin = isAdminUser(user);
+  const activeNavItems =
+    isUserConfigSection && isAdmin ? userConfigNavItems : navItems;
 
   // Protect the route
   useEffect(() => {
@@ -93,13 +203,19 @@ export default function DashboardLayout({
     }
   }, [isLoading, isAuthenticated, router]);
 
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && isUserConfigSection && !isAdmin) {
+      router.replace("/dashboard");
+    }
+  }, [isLoading, isAuthenticated, isUserConfigSection, isAdmin, router]);
+
   const handleLogout = () => {
     logout();
     router.replace("/login");
   };
 
   // Loading / unauthenticated guard
-  if (isLoading || !isAuthenticated) {
+  if (isLoading || !isAuthenticated || (isUserConfigSection && !isAdmin)) {
     return (
       <Box
         sx={{
@@ -128,8 +244,12 @@ export default function DashboardLayout({
         </Typography>
       </Toolbar>
       <List sx={{ flexGrow: 1, px: 1 }}>
-        {navItems.map((item) => {
-          const active = pathname === item.href;
+        {activeNavItems.map((item) => {
+          const active = isUserConfigSection
+            ? pathname === item.href
+            : pathname === item.href ||
+              (item.href !== "/dashboard" &&
+                pathname.startsWith(`${item.href}/`));
           return (
             <ListItemButton
               key={item.href}
@@ -190,9 +310,30 @@ export default function DashboardLayout({
               ml: "auto",
               display: "flex",
               alignItems: "center",
-              gap: 2,
+              gap: 1.25,
             }}
           >
+            {isAdmin && (
+              <Tooltip title="User Config">
+                <IconButton
+                  component={Link}
+                  href="/dashboard/user-config"
+                  color="inherit"
+                  sx={{
+                    color: isUserConfigSection ? "#097aa2" : "#64748b",
+                    backgroundColor: isUserConfigSection
+                      ? "rgba(9,122,162,0.12)"
+                      : "transparent",
+                    "&:hover": {
+                      backgroundColor: "rgba(9,122,162,0.12)",
+                      color: "#097aa2",
+                    },
+                  }}
+                >
+                  <ManageAccountsIcon />
+                </IconButton>
+              </Tooltip>
+            )}
             <Typography variant="body2" sx={{ color: "#64748b" }}>
               {user?.user_details?.name ?? user?.username ?? user?.mobile}
             </Typography>
