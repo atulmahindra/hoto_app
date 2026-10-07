@@ -36,6 +36,8 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ImageNotSupportedIcon from "@mui/icons-material/ImageNotSupported";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -1238,6 +1240,101 @@ export default function QCReports() {
                   })
                   .map((key) => {
                     const value = selectedRow[key];
+                    const normalizedValue = String(value ?? "")
+                      .trim()
+                      .replace(/[_-]+/g, " ")
+                      .toLowerCase();
+                    const isYes = ["1", "yes", "ok", "true"].includes(
+                      normalizedValue
+                    );
+                    const isNo = ["0", "no", "not ok", "false"].includes(
+                      normalizedValue
+                    );
+                    const isLow = normalizedValue === "low";
+                    const isMedium = normalizedValue === "medium";
+                    const isHigh = normalizedValue === "high";
+
+                    if (isYes || isNo || isLow || isMedium || isHigh) {
+                      const statusColor =
+                        isYes || isLow
+                          ? "#166534"
+                          : isMedium
+                            ? "#92400e"
+                            : "#b91c1c";
+                      const statusBackground =
+                        isYes || isLow
+                          ? "#dcfce7"
+                          : isMedium
+                            ? "#fef3c7"
+                            : "#fee2e2";
+                      const statusLabel = isYes
+                        ? "Yes"
+                        : isNo
+                          ? "Not OK"
+                          : isLow
+                            ? "Low"
+                            : isMedium
+                              ? "Medium"
+                              : "High";
+
+                      return (
+                        <Paper
+                          key={key}
+                          variant="outlined"
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1.25,
+                            p: 1.5,
+                            borderRadius: 2,
+                            backgroundColor: "#ffffff",
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              minWidth: 0,
+                              color: "#334155",
+                              lineHeight: 1.4,
+                              overflowWrap: "anywhere",
+                            }}
+                          >
+                            {formatColumnLabel(key)}
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                              flexShrink: 0,
+                              fontSize: "0.8125rem",
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                              color: statusColor,
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                              backgroundColor: statusBackground,
+                            }}
+                          >
+                            {isYes ? (
+                              <CheckCircleIcon fontSize="small" />
+                            ) : isNo ? (
+                              <CancelIcon fontSize="small" />
+                            ) : isLow ? (
+                              <InfoOutlinedIcon fontSize="small" />
+                            ) : isHigh ? (
+                              <CancelIcon fontSize="small" />
+                            ) : (
+                              <WarningAmberIcon fontSize="small" />
+                            )}
+                            {statusLabel}
+                          </Box>
+                        </Paper>
+                      );
+                    }
+
                     return (
                       <Typography
                         key={key}
