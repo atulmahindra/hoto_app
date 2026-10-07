@@ -308,7 +308,7 @@ function BriefingPhotoPreview({
           backgroundColor: "#f8fafc",
         }}
       >
-        <Stack spacing={0.5} alignItems="center">
+        <Stack spacing={0.5} sx={{ alignItems: "center" }}>
           <ImageNotSupportedIcon />
           <Typography variant="body2">No image available</Typography>
         </Stack>
@@ -1268,8 +1268,7 @@ export default function QCReports() {
                 <Stack spacing={1.25}>
                   <Stack
                     direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
+                    sx={{ alignItems: "center", justifyContent: "space-between" }}
                   >
                     <Typography
                       variant="subtitle2"
@@ -1291,8 +1290,7 @@ export default function QCReports() {
                       />
                       <Stack
                         direction="row"
-                        alignItems="center"
-                        justifyContent="space-between"
+                        sx={{ alignItems: "center", justifyContent: "space-between" }}
                       >
                         <Button
                           size="small"
