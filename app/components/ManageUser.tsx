@@ -340,7 +340,7 @@ export default function ManageUser() {
                 label="Mobile Number"
                 value={form.mobile}
                 onChange={updateForm("mobile")}
-                inputProps={{ maxLength: 10 }}
+                slotProps={{ htmlInput: { maxLength: 10 } }}
                 fullWidth
               />
               <TextField
