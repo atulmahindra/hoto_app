@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormHelperText,
   IconButton,
   InputAdornment,
   InputLabel,
@@ -51,6 +52,9 @@ interface UserRecord {
   role: UserRole;
   location: string;
   status: UserStatus;
+  roleId: string | number | null;
+  cityId: string | number | null;
+  yardId: string | number | null;
 }
 
 interface UserForm {
@@ -59,19 +63,35 @@ interface UserForm {
   email: string;
   role: UserRole;
   location: string;
+  yard: string;
   status: UserStatus;
+}
+
+interface CityItem {
+  id: string | number;
+  name: string;
+}
+
+interface YardItem {
+  id: string | number;
+  name: string;
+}
+
+interface RoleItem {
+  id: string | number;
+  name: string;
 }
 
 const EMPTY_FORM: UserForm = {
   name: "",
   mobile: "",
   email: "",
-  role: "Viewer",
+  role: "",
   location: "",
+  yard: "",
   status: "Active",
 };
 
-const roles: UserRole[] = ["Admin", "Manager", "Auditor", "Viewer"];
 const statuses: UserStatus[] = ["Active", "Inactive"];
 
 const findUserRows = (value: unknown): unknown[] | null => {
@@ -136,6 +156,42 @@ const apiValueToString = (value: unknown): string => {
     }
   }
   return "";
+};
+
+const apiIdentifier = (
+  record: Record<string, unknown>,
+  keys: string[]
+): string | number | null => {
+  for (const key of keys) {
+    const value = getApiValue(record, [key]);
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      if (key === "city" || key === "yard" || key === "role") {
+        if (/^\d+$/.test(value)) return value;
+      } else {
+        return value;
+      }
+    }
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      for (const nestedKey of [
+        "role_id",
+        "roleId",
+        "city_id",
+        "cityId",
+        "yard_id",
+        "yardId",
+        "id",
+      ]) {
+        const nestedId = getApiValue(value as Record<string, unknown>, [
+          nestedKey,
+        ]);
+        if (typeof nestedId === "string" || typeof nestedId === "number") {
+          return nestedId;
+        }
+      }
+    }
+  }
+  return null;
 };
 
 const mapApiUser = (value: unknown, index: number): UserRecord => {
@@ -209,12 +265,48 @@ const mapApiUser = (value: unknown, index: number): UserRecord => {
         ])
       ) || "—",
     status,
+    roleId: apiIdentifier(record, ["role_id", "roleId", "role"]),
+    cityId: apiIdentifier(record, ["city_id", "cityId", "city"]),
+    yardId: apiIdentifier(record, ["yard_id", "yardId", "yard"]),
   };
+};
+
+const resolveRoleName = (user: UserRecord, roleList: RoleItem[]) =>
+  roleList.find(
+    (role) =>
+      String(role.id) === String(user.roleId ?? user.role) ||
+      role.name === user.role
+  )?.name ?? user.role;
+
+const findApiUser = (value: unknown, id: string | number): unknown | null => {
+  if (!value || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const match = findApiUser(entry, id);
+      if (match) return match;
+    }
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const recordId = getApiValue(record, ["id", "user_id", "userId", "_id"]);
+  if (String(recordId ?? "") === String(id)) return record;
+
+  for (const nested of Object.values(record)) {
+    const match = findApiUser(nested, id);
+    if (match) return match;
+  }
+  return null;
 };
 
 export default function ManageUser() {
   const { getToken } = useAuth();
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [cityList, setCityList] = useState<CityItem[]>([]);
+  const [yardList, setYardList] = useState<YardItem[]>([]);
+  const [roleList, setRoleList] = useState<RoleItem[]>([]);
+  const [loadingMasterData, setLoadingMasterData] = useState(false);
+  const [masterDataError, setMasterDataError] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [listError, setListError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -223,9 +315,86 @@ export default function ManageUser() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | number | null>(null);
+  const [editingApiUser, setEditingApiUser] = useState<UserRecord | null>(null);
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  const loadMasterData = useCallback(async () => {
+    setLoadingMasterData(true);
+    setMasterDataError("");
+    try {
+      const response = await axios.get(
+        "https://alytehotoapi.mllqa.com/api/v1/master/dropdown"
+      );
+      if (
+        response.data?.success === false ||
+        response.data?.status === false ||
+        response.data?.status === "error"
+      ) {
+        throw new Error(
+          response.data.message || "Failed to load role, city, and yard options."
+        );
+      }
+
+      const data = response.data?.data as Record<string, unknown> | undefined;
+      if (
+        !data ||
+        !Array.isArray(data.roles) ||
+        !Array.isArray(data.cities) ||
+        !Array.isArray(data.yards)
+      ) {
+        throw new Error(
+          "The master dropdown response must include roles, cities, and yards."
+        );
+      }
+
+      const mapOptions = (
+        values: unknown[],
+        kind: string
+      ): Array<{ id: string | number; name: string }> => {
+        const options = values.flatMap((value) => {
+          if (!value || typeof value !== "object" || Array.isArray(value)) {
+            return [];
+          }
+          const record = value as Record<string, unknown>;
+          const id = record.id;
+          const name = record.name;
+          return (typeof id === "string" || typeof id === "number") &&
+            (typeof name === "string" || typeof name === "number") &&
+            String(name).trim()
+            ? [{ id, name: String(name).trim() }]
+            : [];
+        });
+        if (values.length > 0 && options.length === 0) {
+          throw new Error(`The ${kind} options have an unexpected format.`);
+        }
+        return options;
+      };
+
+      setRoleList(mapOptions(data.roles, "role"));
+      setCityList(mapOptions(data.cities, "city"));
+      setYardList(mapOptions(data.yards, "yard"));
+    } catch (error) {
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message ||
+          "Failed to load role, city, and yard options. Please try again."
+        : error instanceof Error
+          ? error.message
+          : "Failed to load role, city, and yard options. Please try again.";
+      console.error("Failed to load master dropdown data:", error);
+      setRoleList([]);
+      setCityList([]);
+      setYardList([]);
+      setMasterDataError(message);
+    } finally {
+      setLoadingMasterData(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadMasterData();
+  }, [loadMasterData]);
 
   const loadUsers = useCallback(async (): Promise<UserRecord[]> => {
     const token = getToken();
@@ -300,6 +469,7 @@ export default function ManageUser() {
     email: values.email.trim(),
     role: values.role,
     location: values.location.trim(),
+    yard: values.yard,
     status: values.status,
   });
 
@@ -312,14 +482,22 @@ export default function ManageUser() {
           .join(" ")
           .toLowerCase()
           .includes(term);
-      const matchesRole = roleFilter === "All Roles" || user.role === roleFilter;
+      const matchesRole =
+        roleFilter === "All Roles" ||
+        resolveRoleName(user, roleList) === roleFilter;
       return matchesSearch && matchesRole;
     });
-  }, [users, searchTerm, roleFilter]);
+  }, [users, roleList, searchTerm, roleFilter]);
 
   const roleOptions = useMemo(
-    () => Array.from(new Set([...roles, ...users.map((user) => user.role)])),
-    [users]
+    () =>
+      Array.from(
+        new Set([
+          ...roleList.map((role) => role.name),
+          ...users.map((user) => resolveRoleName(user, roleList)),
+        ])
+      ),
+    [roleList, users]
   );
 
   const pageCount = Math.ceil(filteredUsers.length / rowsPerPage);
@@ -335,29 +513,85 @@ export default function ManageUser() {
 
   const openCreateDialog = () => {
     setEditingId(null);
+    setEditingApiUser(null);
     setForm({ ...EMPTY_FORM });
     setSaveError("");
     setSaving(false);
     setDialogOpen(true);
   };
 
-  const openEditDialog = (user: UserRecord) => {
+  const getCityName = (user: UserRecord) =>
+    cityList.find(
+      (city) =>
+        String(city.id) === String(user.cityId ?? user.location) ||
+        city.name === user.location
+    )?.name ?? user.location;
+
+  const openEditDialog = async (user: UserRecord) => {
     setEditingId(user.id);
+    setEditingApiUser(null);
     setSaveError("");
-    setSaving(false);
+    setSaving(true);
     setForm({
       name: user.name,
       mobile: user.mobile,
       email: user.email,
-      role: user.role,
-      location: user.location,
+      role: resolveRoleName(user, roleList),
+      location: getCityName(user),
+      yard: String(user.yardId ?? ""),
       status: user.status,
     });
     setDialogOpen(true);
+
+    try {
+      const token = getToken();
+      const response = await axios.get(
+        `${API_HOST}/api/v1/user/${encodeURIComponent(String(user.id))}`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      if (
+        response.data?.success === false ||
+        response.data?.status === false ||
+        response.data?.status === "error"
+      ) {
+        throw new Error(response.data.message || "Failed to load user details.");
+      }
+
+      const record = findApiUser(response.data, user.id);
+      if (!record) {
+        throw new Error("The user details response has an unexpected format.");
+      }
+      const detailedUser = mapApiUser(record, 0);
+      setEditingApiUser(detailedUser);
+      setForm({
+        name: detailedUser.name,
+        mobile: detailedUser.mobile,
+        email: detailedUser.email,
+        role: resolveRoleName(detailedUser, roleList),
+        location: getCityName(detailedUser),
+        yard: String(detailedUser.yardId ?? ""),
+        status: detailedUser.status,
+      });
+    } catch (error) {
+      const message = axios.isAxiosError<{ message?: string }>(error)
+        ? error.response?.data?.message || "Failed to load user details."
+        : error instanceof Error
+          ? error.message
+          : "Failed to load user details.";
+      console.error("Failed to load user details:", error);
+      setSaveError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
+    setEditingApiUser(null);
     setSaveError("");
     setSaving(false);
   };
@@ -374,23 +608,116 @@ export default function ManageUser() {
     if (
       !normalized.name ||
       !/^\d{10}$/.test(normalized.mobile) ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email) ||
-      !normalized.location.trim()
+      !normalized.location.trim() ||
+      !normalized.yard
     ) {
-      setSaveError("Please enter a valid name, 10-digit mobile, email, and location.");
+      setSaveError(
+        "Please enter a name, valid 10-digit mobile number, city, and yard."
+      );
       return;
     }
 
     setSaveError("");
 
     if (editingId !== null) {
-      setSaving(true);
-      setUsers((current) =>
-        current.map((user) =>
-          user.id === editingId ? { ...user, ...normalized } : user
-        )
+      if (!editingApiUser) {
+        setSaveError("User details could not be loaded. Close and try again.");
+        return;
+      }
+
+      const selectedRole = roleList.find(
+        (role) => role.name === normalized.role
       );
-      closeDialog();
+      const roleId =
+        selectedRole?.id ??
+        (normalized.role === resolveRoleName(editingApiUser, roleList)
+          ? editingApiUser.roleId
+          : null);
+      const selectedCity = cityList.find(
+        (city) =>
+          city.name === normalized.location ||
+          String(city.id) === normalized.location
+      );
+      const selectedYard = yardList.find(
+        (yard) => String(yard.id) === normalized.yard
+      );
+
+      if (roleId === null) {
+        setSaveError("Select a role returned by the master dropdown API.");
+        return;
+      }
+      if (!selectedCity) {
+        setSaveError("Select a city from the list before updating the user.");
+        return;
+      }
+      if (!selectedYard) {
+        setSaveError("Select a yard from the list before updating the user.");
+        return;
+      }
+
+      setSaving(true);
+      try {
+        const token = getToken();
+        const response = await axios.put(
+          `${API_HOST}/api/v1/user/${encodeURIComponent(String(editingId))}`,
+          {
+            name: normalized.name,
+            mobile: normalized.mobile,
+            roleId,
+            city: String(selectedCity.id),
+            yard: String(selectedYard.id),
+            status: normalized.status,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
+        if (
+          response.data?.success === false ||
+          response.data?.status === false ||
+          response.data?.status === "error"
+        ) {
+          throw new Error(response.data.message || "Failed to update user.");
+        }
+
+        closeDialog();
+        await fetchUsers();
+      } catch (error) {
+        const message = axios.isAxiosError<{ message?: string }>(error)
+          ? error.response?.data?.message || "Failed to update user. Please try again."
+          : error instanceof Error
+            ? error.message
+            : "Failed to update user. Please try again.";
+        console.error("Failed to update user:", error);
+        setSaveError(message);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    const selectedCity = cityList.find(
+      (city) => city.name === normalized.location
+    );
+    const selectedYard = yardList.find(
+      (yard) => String(yard.id) === normalized.yard
+    );
+    const selectedRole = roleList.find(
+      (role) => role.name === normalized.role
+    );
+    if (!selectedRole) {
+      setSaveError("Select a role from the master dropdown list.");
+      return;
+    }
+    if (!selectedCity) {
+      setSaveError("Select a city from the list before adding the user.");
+      return;
+    }
+    if (!selectedYard) {
+      setSaveError("Select a yard from the list before adding the user.");
       return;
     }
 
@@ -402,10 +729,10 @@ export default function ManageUser() {
         {
           name: normalized.name,
           mobile: normalized.mobile,
-          roleId: 1,
+          roleId: selectedRole.id,
           entity: 1,
-          city: "1",
-          yard: "4",
+          city: String(selectedCity.id),
+          yard: String(selectedYard.id),
         },
         {
           headers: {
@@ -452,8 +779,9 @@ export default function ManageUser() {
   const isSaveDisabled =
     !form.name.trim() ||
     !/^\d{10}$/.test(form.mobile) ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) ||
-    !form.location.trim();
+    !form.role.trim() ||
+    !form.location.trim() ||
+    !form.yard;
 
   return (
     <Paper
@@ -577,8 +905,13 @@ export default function ManageUser() {
                   </Typography>
                 </TableCell>
                 <TableCell>{user.mobile}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>{user.location}</TableCell>
+                <TableCell>{resolveRoleName(user, roleList)}</TableCell>
+                <TableCell>
+                  {cityList.find(
+                    (city) =>
+                      String(city.id) === String(user.cityId ?? user.location)
+                  )?.name ?? user.location}
+                </TableCell>
                 <TableCell>
                   <Chip
                     size="small"
@@ -650,7 +983,7 @@ export default function ManageUser() {
 
       <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
         <DialogTitle>
-          {editingId ? "Edit User" : "Add User"}
+          {editingId !== null ? "Edit User" : "Add User"}
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
@@ -661,35 +994,42 @@ export default function ManageUser() {
               onChange={updateForm("name")}
               fullWidth
             />
+            <TextField
+              label="Mobile Number"
+              value={form.mobile}
+              onChange={updateForm("mobile")}
+              slotProps={{ htmlInput: { maxLength: 10 } }}
+              fullWidth
+            />
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <TextField
-                label="Mobile Number"
-                value={form.mobile}
-                onChange={updateForm("mobile")}
-                slotProps={{ htmlInput: { maxLength: 10 } }}
+              <FormControl
                 fullWidth
-              />
-              <TextField
-                label="Email"
-                value={form.email}
-                onChange={updateForm("email")}
-                fullWidth
-              />
-            </Stack>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <FormControl fullWidth>
+                disabled={loadingMasterData || roleList.length === 0}
+              >
                 <InputLabel>Role</InputLabel>
                 <Select
                   label="Role"
                   value={form.role}
                   onChange={updateForm("role")}
                 >
-                  {roleOptions.map((role) => (
-                    <MenuItem key={role} value={role}>
-                      {role}
+                  {roleList.map((role) => (
+                    <MenuItem key={role.id} value={role.name}>
+                      {role.name}
                     </MenuItem>
                   ))}
+                  {editingId !== null &&
+                    form.role &&
+                    !roleList.some((role) => role.name === form.role) && (
+                      <MenuItem value={form.role}>{form.role}</MenuItem>
+                    )}
                 </Select>
+                <FormHelperText>
+                  {loadingMasterData
+                    ? "Loading roles..."
+                    : roleList.length === 0 && !masterDataError
+                      ? "No roles available."
+                      : ""}
+                </FormHelperText>
               </FormControl>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
@@ -706,12 +1046,82 @@ export default function ManageUser() {
                 </Select>
               </FormControl>
             </Stack>
-            <TextField
-              label="Location"
-              value={form.location}
-              onChange={updateForm("location")}
+            <FormControl
               fullWidth
-            />
+              disabled={loadingMasterData || cityList.length === 0}
+            >
+              <InputLabel>Location</InputLabel>
+              <Select
+                label="Location"
+                value={
+                  cityList.some(
+                    (city) =>
+                      city.name === form.location ||
+                      String(city.id) === form.location
+                  )
+                    ? cityList.find(
+                        (city) =>
+                          city.name === form.location ||
+                          String(city.id) === form.location
+                      )?.name ?? ""
+                    : form.location
+                }
+                onChange={updateForm("location")}
+              >
+                {cityList.map((city) => (
+                  <MenuItem key={city.id} value={city.name}>
+                    {city.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>
+                {loadingMasterData
+                  ? "Loading cities..."
+                  : cityList.length === 0 && !masterDataError
+                    ? "No cities available."
+                    : ""}
+              </FormHelperText>
+            </FormControl>
+            <FormControl
+              fullWidth
+              disabled={loadingMasterData || yardList.length === 0}
+            >
+              <InputLabel>Yard</InputLabel>
+              <Select
+                label="Yard"
+                value={form.yard}
+                onChange={updateForm("yard")}
+              >
+                {yardList.map((yard) => (
+                  <MenuItem key={yard.id} value={String(yard.id)}>
+                    {yard.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>
+                {loadingMasterData
+                  ? "Loading yards..."
+                  : yardList.length === 0 && !masterDataError
+                    ? "No yards available."
+                    : ""}
+              </FormHelperText>
+            </FormControl>
+            {masterDataError && (
+              <Alert
+                severity="error"
+                action={
+                  <Button
+                    color="inherit"
+                    size="small"
+                    onClick={() => void loadMasterData()}
+                  >
+                    Retry
+                  </Button>
+                }
+              >
+                {masterDataError}
+              </Alert>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -728,7 +1138,13 @@ export default function ManageUser() {
               "&:hover": { backgroundColor: "#075f7e" },
             }}
           >
-            {saving ? "Adding..." : "Save User"}
+            {saving
+              ? editingId === null
+                ? "Adding..."
+                : "Updating..."
+              : editingId === null
+                ? "Save User"
+                : "Update User"}
           </Button>
         </DialogActions>
       </Dialog>
