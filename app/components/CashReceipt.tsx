@@ -81,7 +81,7 @@ export default function CashReceipt() {
     try {
       const token = getToken();
       const response = await axios.post(
-        `${API_HOST}/api/v1/cash-receipt/fetchdrivardata`,
+        `${API_HOST}/api/v1/cash-receipt/fetchdriverdata`,
         { source: SOURCE, mobileNo: mobile },
         {
           headers: {
@@ -91,7 +91,7 @@ export default function CashReceipt() {
         }
       );
 
-      console.log("fetchdrivardata", response.data);
+      console.log("fetchdriverdata", response.data);
 
       // Recursively find a key (case-insensitive) anywhere in the response
       const findValue = (obj: unknown, keys: string[]): string => {
