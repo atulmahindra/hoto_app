@@ -36,3 +36,7 @@ export const QC_API_BASE_URL =
 export const DRIVER_SELF_AUDIT_API_BASE_URL =
   process.env.NEXT_PUBLIC_DRIVER_SELF_AUDIT_API_BASE_URL ||
   ENVIRONMENTS.driverSelfAudit;
+
+// HOTO financial API base URL (manual adjustment template/upload, etc.)
+export const HOTO_API_BASE_URL =
+  process.env.NEXT_PUBLIC_HOTO_API_BASE_URL || "https://alytehotoapi.mllqa.com";
