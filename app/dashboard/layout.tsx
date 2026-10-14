@@ -34,26 +34,35 @@ import { useAuth } from "../context/AuthContext";
 const DRAWER_WIDTH = 240;
 
 const navItems = [
-  { label: "HOTO Audit", href: "/dashboard", icon: <TableChartIcon /> },
+  {
+    label: "HOTO Audit",
+    href: "/dashboard",
+    icon: <TableChartIcon />,
+    roleIds: ["1", "6"],
+  },
   {
     label: "Driver Self Audit",
     href: "/dashboard/driver-self-audit",
     icon: <FactCheckIcon />,
+    roleIds: ["1", "5"],
   },
   {
     label: "QC Reports",
     href: "/dashboard/qc-reports",
     icon: <FactCheckIcon />,
+    roleIds: ["1", "5"],
   },
   {
     label: "Cash Receipt",
     href: "/dashboard/cash-receipt",
     icon: <PaymentsIcon />,
+    roleIds: ["7"],
   },
   {
     label: "Manual Upload",
     href: "/dashboard/hoto-upload",
     icon: <UploadFileIcon />,
+    roleIds: ["8"],
   },
 ];
 
@@ -153,6 +162,29 @@ const isAdminUser = (user: Record<string, unknown> | null) => {
   );
 };
 
+const getRoleId = (user: Record<string, unknown> | null): string => {
+  if (!user) return "";
+
+  const userDetails =
+    user.user_details && typeof user.user_details === "object"
+      ? (user.user_details as Record<string, unknown>)
+      : {};
+  const nestedUser =
+    user.user && typeof user.user === "object"
+      ? (user.user as Record<string, unknown>)
+      : {};
+
+  return getStringValue({ ...nestedUser, ...userDetails, ...user }, [
+    "role_id",
+    "roleId",
+  ]);
+};
+
+const USER_CONFIG_ICON_ROLE_IDS = ["1", "5", "6"];
+
+const hasUserConfigIconRole = (user: Record<string, unknown> | null) =>
+  USER_CONFIG_ICON_ROLE_IDS.includes(getRoleId(user));
+
 // Page title + breadcrumb trail per route
 const pageMeta: Record<string, { title: string; trail: string[] }> = {
   "/dashboard": { title: "HOTO Audit", trail: ["HOTO Audit"] },
@@ -190,11 +222,24 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  useEffect(() => {
+    if (user) {
+      console.log("User details:", {
+        mobile: user.mobile,
+        username: user.username,
+        user_details: user.user_details,
+      });
+    }
+  }, [user]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isUserConfigSection = pathname.startsWith("/dashboard/user-config");
   const isAdmin = isAdminUser(user);
+  const showUserConfigIcon = hasUserConfigIconRole(user);
+  const roleId = getRoleId(user);
   const activeNavItems =
-    isUserConfigSection && isAdmin ? userConfigNavItems : navItems;
+    isUserConfigSection && isAdmin
+      ? userConfigNavItems
+      : navItems.filter((item) => item.roleIds.includes(roleId));
 
   // Protect the route
   useEffect(() => {
@@ -313,7 +358,7 @@ export default function DashboardLayout({
               gap: 1.25,
             }}
           >
-            {isAdmin && (
+            {showUserConfigIcon && (
               <Tooltip title="User Config">
                 <IconButton
                   component={Link}
