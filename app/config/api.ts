@@ -12,7 +12,7 @@
 const ENVIRONMENTS = {
   dev: "https://alytehotoapi.mllqa.com",
   local: "http://localhost:5001",
-  qc: "https://alytehotoapi.mllqa.com",
+  qc: "https://alyteqcapi.mllqa.com",
   driverSelfAudit: "https://alytehotoapi.mllqa.com",
 } as const;
 
