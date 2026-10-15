@@ -30,6 +30,7 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import { useAuth } from "../context/AuthContext";
+import { getStringValue, getRoleId } from "../lib/role";
 
 const DRAWER_WIDTH = 240;
 
@@ -83,19 +84,6 @@ const userConfigNavItems = [
     icon: <ManageAccountsIcon />,
   },
 ];
-
-const getStringValue = (
-  source: Record<string, unknown>,
-  keys: string[]
-): string => {
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === "string" || typeof value === "number") {
-      return String(value);
-    }
-  }
-  return "";
-};
 
 const hasAdminPermission = (value: unknown): boolean => {
   if (!value) return false;
@@ -160,24 +148,6 @@ const isAdminUser = (user: Record<string, unknown> | null) => {
     nestedUser.is_admin === true ||
     nestedUser.isAdmin === true
   );
-};
-
-const getRoleId = (user: Record<string, unknown> | null): string => {
-  if (!user) return "";
-
-  const userDetails =
-    user.user_details && typeof user.user_details === "object"
-      ? (user.user_details as Record<string, unknown>)
-      : {};
-  const nestedUser =
-    user.user && typeof user.user === "object"
-      ? (user.user as Record<string, unknown>)
-      : {};
-
-  return getStringValue({ ...nestedUser, ...userDetails, ...user }, [
-    "role_id",
-    "roleId",
-  ]);
 };
 
 const USER_CONFIG_ICON_ROLE_IDS = ["1", "5", "6"];

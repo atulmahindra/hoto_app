@@ -17,6 +17,7 @@ import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE_URL } from "../config/api";
+import { getDefaultRoute } from "../lib/role";
 
 const API_HOST = API_BASE_URL;
 const ENTITY = 1;
@@ -32,7 +33,7 @@ interface Toast {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginWithData, isAuthenticated, isLoading } = useAuth();
+  const { user, loginWithData, isAuthenticated, isLoading } = useAuth();
 
   const [step, setStep] = useState<Step>("mobile");
   const [mobile, setMobile] = useState("");
@@ -50,9 +51,9 @@ export default function LoginPage() {
   // Redirect to dashboard if already logged in
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace("/dashboard");
+      router.replace(getDefaultRoute(user));
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   // OTP resend countdown timer
   useEffect(() => {
@@ -143,7 +144,7 @@ export default function LoginPage() {
       loginWithData({ ...data });
 
       showToast("Login successful.", "success");
-      router.replace("/dashboard");
+      router.replace(getDefaultRoute(data));
     } catch (error) {
       const message =
         (axios.isAxiosError(error) &&
