@@ -59,6 +59,7 @@ export default function CashReceipt() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmationMobileNo, setConfirmationMobileNo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [toast, setToast] = useState<Toast>({
     open: false,
     message: "",
@@ -266,8 +267,7 @@ export default function CashReceipt() {
       );
 
       console.log("CashReceipt", response.data);
-      setConfirmOpen(false);
-      setForm(INITIAL_FORM);
+      setIsSaved(true);
       showToast("Cash receipt saved successfully.", "success");
     } catch (error) {
       const message =
@@ -279,6 +279,16 @@ export default function CashReceipt() {
       setMobileNo("");
       setSubmitting(false);
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleCloseReceipt = () => {
+    setConfirmOpen(false);
+    setIsSaved(false);
+    setForm(INITIAL_FORM);
   };
 
   return (
@@ -496,10 +506,24 @@ export default function CashReceipt() {
         </Box>
       </Paper>
 
-      {/* Confirmation popup */}
+      {/* Confirmation / print popup */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #cash-receipt-print-area, #cash-receipt-print-area * { visibility: visible; }
+          #cash-receipt-print-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+          }
+        }
+      `}</style>
       <Dialog
         open={confirmOpen}
-        onClose={() => !submitting && setConfirmOpen(false)}
+        onClose={() =>
+          !submitting && (isSaved ? handleCloseReceipt() : setConfirmOpen(false))
+        }
         maxWidth="xs"
         fullWidth
       >
@@ -512,103 +536,129 @@ export default function CashReceipt() {
             background: "linear-gradient(135deg, #f8fafc 0%, #ebf7fb 100%)",
           }}
         >
-          Cash Receipt Summary
+          {isSaved ? "Cash Receipt Print" : "Cash Receipt Summary"}
         </DialogTitle>
         <DialogContent sx={{ pt: 2.5, pb: 1.5 }}>
-          <Box
-            sx={{
-              border: "1px solid #dbeafe",
-              borderRadius: 2,
-              background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
-              p: 2,
-              mb: 2,
-            }}
-          >
+          <Box id="cash-receipt-print-area">
+            <Box
+              sx={{
+                border: "1px solid #dbeafe",
+                borderRadius: 2,
+                background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+                p: 2,
+                mb: 2,
+              }}
+            >
 
-            <Stack spacing={1.1}>
-              {[
-                { label: "Driver Name", value: form.driver },
-                { label: "Mobile Number", value: confirmationMobileNo },
-                { label: "Operator Type", value: form.operatorType },
-                { label: "Driver ID", value: form.driverId },
-                { label: "Cab Number", value: form.cabNumber },
-                { label: "Comments", value: form.comments },
-              ].map((row, index, rows) => (
-                <Box
-                  key={row.label}
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: 2,
-                    py: 0.7,
-                    borderBottom:
-                      index < rows.length - 1 ? "1px solid #e2e8f0" : "none",
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "#64748b", fontWeight: 500 }}
-                  >
-                    {row.label}
-                  </Typography>
-                  <Typography
-                    variant="body2"
+              <Stack spacing={1.1}>
+                {[
+                  { label: "Driver Name", value: form.driver },
+                  { label: "Mobile Number", value: confirmationMobileNo },
+                  { label: "Operator Type", value: form.operatorType },
+                  { label: "Driver ID", value: form.driverId },
+                  { label: "Cab Number", value: form.cabNumber },
+                  { label: "Comments", value: form.comments },
+                ].map((row, index, rows) => (
+                  <Box
+                    key={row.label}
                     sx={{
-                      fontWeight: 700,
-                      color: "#0f172a",
-                      textAlign: "right",
-                      overflowWrap: "anywhere",
-                      maxWidth: "58%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 2,
+                      py: 0.7,
+                      borderBottom:
+                        index < rows.length - 1 ? "1px solid #e2e8f0" : "none",
                     }}
                   >
-                    {row.value || "-"}
-                  </Typography>
-                </Box>
-              ))}
-            </Stack>
-          </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#64748b", fontWeight: 500 }}
+                    >
+                      {row.label}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: "#0f172a",
+                        textAlign: "right",
+                        overflowWrap: "anywhere",
+                        maxWidth: "58%",
+                      }}
+                    >
+                      {row.value || "-"}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              background: "#e0f2fe",
-              border: "1px solid #bae6fd",
-              borderRadius: 2,
-              px: 2,
-              py: 1.2,
-            }}
-          >
-            <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 700 }}>
-              Total Amount
-            </Typography>
-            <Typography variant="h6" sx={{ color: "#097aa2", fontWeight: 800 }}>
-              ₹{Number(form.amount || 0).toFixed(2)}
-            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: "#e0f2fe",
+                border: "1px solid #bae6fd",
+                borderRadius: 2,
+                px: 2,
+                py: 1.2,
+              }}
+            >
+              <Typography variant="body2" sx={{ color: "#0f172a", fontWeight: 700 }}>
+                Total Amount
+              </Typography>
+              <Typography variant="h6" sx={{ color: "#097aa2", fontWeight: 800 }}>
+                ₹{Number(form.amount || 0).toFixed(2)}
+              </Typography>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setConfirmOpen(false)}
-            disabled={submitting}
-            sx={{ textTransform: "none", color: "#64748b" }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={submitting}
-            variant="contained"
-            sx={{
-              textTransform: "none",
-              backgroundColor: "#097aa2",
-              "&:hover": { backgroundColor: "#075f7e" },
-            }}
-          >
-            {submitting ? "Saving..." : "Confirm & Save"}
-          </Button>
+          {isSaved ? (
+            <>
+              <Button
+                onClick={handleCloseReceipt}
+                sx={{ textTransform: "none", color: "#64748b" }}
+              >
+                Close
+              </Button>
+              <Button
+                onClick={handlePrint}
+                variant="contained"
+                sx={{
+                  textTransform: "none",
+                  backgroundColor: "#097aa2",
+                  "&:hover": { backgroundColor: "#075f7e" },
+                }}
+              >
+                Print
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={() => setConfirmOpen(false)}
+                disabled={submitting}
+                sx={{ textTransform: "none", color: "#64748b" }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleConfirm}
+                disabled={submitting}
+                variant="contained"
+                sx={{
+                  textTransform: "none",
+                  backgroundColor: "#097aa2",
+                  "&:hover": { backgroundColor: "#075f7e" },
+                }}
+              >
+                {submitting ? "Saving..." : "Confirm & Save"}
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
 
