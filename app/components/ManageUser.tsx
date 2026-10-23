@@ -992,6 +992,7 @@ export default function ManageUser() {
               label="Full Name"
               value={form.name}
               onChange={updateForm("name")}
+              disabled={editingId !== null}
               fullWidth
             />
             <TextField
@@ -999,6 +1000,7 @@ export default function ManageUser() {
               value={form.mobile}
               onChange={updateForm("mobile")}
               slotProps={{ htmlInput: { maxLength: 10 } }}
+              disabled={editingId !== null}
               fullWidth
             />
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -1031,7 +1033,7 @@ export default function ManageUser() {
                       : ""}
                 </FormHelperText>
               </FormControl>
-              <FormControl fullWidth>
+              <FormControl fullWidth disabled={editingId !== null}>
                 <InputLabel>Status</InputLabel>
                 <Select
                   label="Status"

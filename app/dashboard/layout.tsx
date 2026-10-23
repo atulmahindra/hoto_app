@@ -209,7 +209,9 @@ export default function DashboardLayout({
   const activeNavItems =
     isUserConfigSection && isAdmin
       ? userConfigNavItems
-      : navItems.filter((item) => item.roleIds.includes(roleId));
+      : roleId === "1"
+        ? navItems
+        : navItems.filter((item) => item.roleIds.includes(roleId));
 
   // Protect the route
   useEffect(() => {
